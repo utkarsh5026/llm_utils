@@ -1,0 +1,41 @@
+{
+  // Use the uv-managed venv (`make install`), so the editor sees the same deps and tool versions as CI.
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+
+  // Ruff from the venv (pinned by uv.lock), not the extension's bundled copy. Settings come from pyproject.toml.
+  "ruff.importStrategy": "fromEnvironment",
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    },
+    "editor.rulers": [120]
+  },
+
+  // Type checking: Pylance reads [tool.pyright] in pyproject.toml (3.10 target, "standard" mode),
+  // so no python.analysis.* overrides here; they would be ignored anyway.
+
+  // Tests: same config as `make test` (pytest options live in pyproject.toml; the live test auto-skips).
+  "python.testing.pytestEnabled": true,
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestArgs": ["tests"],
+
+  // Match the pre-commit hygiene hooks (trailing-whitespace, end-of-file-fixer, mixed-line-ending --fix=lf).
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+  "files.eol": "\n",
+
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/.pytest_cache": true,
+    "**/.ruff_cache": true,
+    "**/.mypy_cache": true
+  },
+  "search.exclude": {
+    "**/.venv": true,
+    "uv.lock": true
+  }
+}
