@@ -18,6 +18,10 @@ dev = [
     "pyright[nodejs]>=1.1.414",
     "pre-commit>=4.0",
 ]
+# The GitHub Pages site (mkdocs.yml, docs/). Not installed by a plain `uv sync`; use `make docs`.
+docs = [
+    "mkdocs-material>=9.7",
+]
 
 [tool.uv]
 package = false

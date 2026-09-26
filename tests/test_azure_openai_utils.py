@@ -318,12 +318,23 @@ def test_missing_deployment(monkeypatch):
         ("gpt-4o-mini-2024-07-18", "gpt-4o-mini"),
         ("gpt-4.1-mini-2025-04-14", "gpt-4.1-mini"),
         ("gpt-5.1-2025-11-13", "gpt-5.1"),
+        ("gpt-5.4-2026-03-05", "gpt-5.4"),
+        ("gpt-5.4-mini-2026-03-17", "gpt-5.4-mini"),
         ("gpt-4o", "gpt-4o"),
     ],
 )
 def test_price_comes_from_reported_model(model, priced_as):
     res = az.structured("q", Invoice, client=FakeClient(completion(INVOICE, model=model)))
     assert res.cost == pytest.approx(cost(az.PRICING[priced_as]))
+
+
+@pytest.mark.parametrize(("prompt_tokens", "long"), [(272_000, False), (272_001, True)])
+def test_long_context_rate_applies_above_threshold(prompt_tokens, long):
+    client = FakeClient(completion(INVOICE, model="gpt-5.4-2026-03-05", prompt_tokens=prompt_tokens))
+    res = az.structured("q", Invoice, client=client)
+    price = az.PRICING["gpt-5.4"]
+    assert price.long_context is not None
+    assert res.cost == pytest.approx(cost(price.long_context if long else price, prompt_tokens=prompt_tokens))
 
 
 def test_cached_tokens_use_cached_rate():
@@ -341,14 +352,14 @@ def test_deployment_price_overrides_model_price():
 
 def test_unknown_model_has_no_cost_and_warns_once(caplog):
     client = FakeClient(
-        completion(INVOICE, model="gpt-5.4-mini-2026-03-01"), completion(INVOICE, model="gpt-5.4-mini-2026-03-01")
+        completion(INVOICE, model="gpt-99-mini-2030-01-01"), completion(INVOICE, model="gpt-99-mini-2030-01-01")
     )
     with caplog.at_level(logging.WARNING, logger="azure_openai_utils"):
         first = az.structured("q", Invoice, client=client)
         az.structured("q", Invoice, client=client)
 
     assert first.cost is None
-    assert sum("gpt-5.4-mini" in m for m in caplog.messages) == 1
+    assert sum("gpt-99-mini" in m for m in caplog.messages) == 1
     assert az.tracker.totals().unpriced_calls == 2
     assert "have no price" in az.tracker.summary()
 

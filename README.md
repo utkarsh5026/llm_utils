@@ -3,6 +3,9 @@
 Drop-in, single-file LLM helpers. Each provider gets its own self-contained module that you copy into a
 project; there are no imports between modules.
 
+**Documentation:** <https://utkarsh5026.github.io/llm_utils/>. It covers getting started, guides, recipes and the
+API reference.
+
 | Module | Provider | Needs |
 |---|---|---|
 | [`azure_openai_utils.py`](azure_openai_utils.py) | Azure OpenAI | `openai>=1.106`, `pydantic>=2.8`, optional `azure-identity` |
@@ -101,6 +104,7 @@ cost, latency and metadata.
 make install        # uv sync + git pre-commit hook
 make check          # everything CI runs: lint (ruff, pyright, hygiene), tests, minimum versions, drop-in import
 make help           # all targets (fmt, test, cov, live, ...)
+make docs           # preview the docs site at http://127.0.0.1:8000 (sources in docs/, config in mkdocs.yml)
 ```
 
 CI (`.github/workflows/ci.yml`) runs lint, the test suite on Python 3.10–3.14, and the minimum-version and drop-in
