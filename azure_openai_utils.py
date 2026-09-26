@@ -111,11 +111,18 @@ class Price:
     input: float
     output: float
     cached_input: float | None = None  # None: cached tokens are billed at the input rate
+    long_context: Price | None = None  # rates for the whole call once its input exceeds long_context_above
+    long_context_above: int = 272_000
 
 
 # OpenAI list prices, which Azure Global Standard deployments track (checked 2026-09).
 # Data Zone / Regional deployments cost more; override those per deployment with set_price().
+# gpt-5.4-pro (like other -pro models) is Responses-API only, so this module can't call it and it isn't listed.
 PRICING: dict[str, Price] = {
+    # gpt-5.4 bills 2x input / 1.5x output for a call with more than 272K input tokens.
+    "gpt-5.4": Price(2.50, 15.00, 0.25, long_context=Price(5.00, 22.50, 0.50)),
+    "gpt-5.4-mini": Price(0.75, 4.50, 0.075),
+    "gpt-5.4-nano": Price(0.20, 1.25, 0.02),
     "gpt-5.2": Price(1.75, 14.00, 0.175),
     "gpt-5.1": Price(1.25, 10.00, 0.125),
     "gpt-5": Price(1.25, 10.00, 0.125),
@@ -170,6 +177,8 @@ def _cost(usage: Usage, model: str | None, deployment: str) -> float | None:
     price = _price_for(model, deployment)
     if price is None:
         return None
+    if price.long_context and usage.input_tokens > price.long_context_above:
+        price = price.long_context
     cached = min(usage.cached_tokens, usage.input_tokens)
     cached_rate = price.input if price.cached_input is None else price.cached_input
     # Reasoning tokens are already part of output_tokens, so they aren't added again.
