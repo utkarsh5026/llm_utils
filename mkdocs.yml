@@ -1,0 +1,86 @@
+# GitHub Pages site. Preview with `make docs`, build with `make docs-build`.
+# .github/workflows/docs.yml builds it on every PR and deploys it from main.
+site_name: llm_utils
+site_description: Drop-in, single-file LLM helpers. Typed structured output, token and cost tracking, and call logging for Azure OpenAI.
+site_url: https://utkarsh5026.github.io/llm_utils/
+repo_url: https://github.com/utkarsh5026/llm_utils
+repo_name: utkarsh5026/llm_utils
+edit_uri: edit/main/docs/
+copyright: MIT licensed
+
+theme:
+  name: material
+  icon:
+    logo: material/cube-outline
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.action.edit
+
+extra_css:
+  - stylesheets/extra.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Home: index.md
+  - Getting started: getting-started.md
+  - Guides:
+      - Structured output: guides/structured-output.md
+      - Extracting data from text: guides/extraction.md
+      - Batches and async: guides/batch-and-async.md
+      - Tokens and cost: guides/tracking.md
+      - Logging and hooks: guides/logging.md
+      - Handling errors: guides/errors.md
+      - Clients and authentication: guides/clients.md
+  - Recipes: recipes.md
+  - API reference: reference.md
+  - Troubleshooting: troubleshooting.md

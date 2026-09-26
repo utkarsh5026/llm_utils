@@ -29,6 +29,7 @@ make test-min       # suite on Python 3.10 + openai==1.106.0 + pydantic==2.8.0 (
 make check-dropin   # imports the module alone in an empty dir with only its required deps
 make check          # lint + test + test-min + check-dropin
 make live           # real Azure call; needs AZURE_OPENAI_ENDPOINT / _DEPLOYMENT (+ _API_KEY or Entra ID)
+make docs           # live-preview the MkDocs site; make docs-build = strict build (what CI runs)
 
 uv run pytest tests/test_azure_openai_utils.py::test_validation_retry_feeds_errors_back_and_sums_usage   # single test
 uv run pytest -k "track or log"                                                                         # by keyword
@@ -45,6 +46,7 @@ CI (`.github/workflows/ci.yml`): a `lint` job (`make lint`), a `test` matrix ove
 then `make cov`, so a stale `uv.lock` fails CI), and a `compat` job (`make test-min`, `make check-dropin`). A `live`
 job runs only on manual dispatch with the `live` input ticked, using `AZURE_OPENAI_*` repository secrets.
 `astral-sh/setup-uv` is pinned to an exact release because it no longer publishes floating major tags.
+`.github/workflows/docs.yml` builds the site with `--strict` on PRs touching docs and deploys it to GitHub Pages from `main`.
 Dependabot updates action pins only. Refresh Python deps with `uv lock --upgrade`, which leaves the `pyproject.toml` floors alone.
 
 ## Architecture of `azure_openai_utils.py`
@@ -105,3 +107,10 @@ outlive its loop (repeated `asyncio.run()` would otherwise break).
 - The test file disables pyright's `reportArgumentType`/`reportOptionalMemberAccess` in its header because the
   fakes are duck-typed. The module itself must stay at 0 pyright errors.
 - openai 3.x depends on `httpx2`, not `httpx`, so tests import `httpx2` with a fallback when building SDK exceptions.
+
+## Docs site
+
+User docs live in `docs/` (MkDocs Material, config in `mkdocs.yml`, deps in the `docs` dependency group) and are
+published to https://utkarsh5026.github.io/llm_utils/. `docs/reference.md` is hand-written, so **any change to a
+public name, signature, default, exception or record field must be reflected there and in the relevant guide.**
+Python blocks in `docs/*.md` are ruff-formatted by pre-commit; blocks that aren't valid Python (signatures) are skipped.

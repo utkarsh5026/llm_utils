@@ -1,0 +1,12 @@
+/* Home page lead paragraph */
+.hero-tagline {
+  font-size: 1.15rem;
+  line-height: 1.6;
+  max-width: 44rem;
+  color: var(--md-default-fg-color--light);
+}
+
+/* Keep the grid cards' heading icons in the accent colour */
+.md-typeset .grid.cards .lg {
+  color: var(--md-accent-fg-color);
+}

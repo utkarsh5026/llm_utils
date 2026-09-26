@@ -9,6 +9,7 @@ repos:
       - id: mixed-line-ending
         args: [--fix=lf]
       - id: check-yaml
+        args: [--unsafe] # syntax-only, so mkdocs.yml's !!python/name tags are allowed
       - id: check-toml
       - id: check-merge-conflict
       - id: check-added-large-files

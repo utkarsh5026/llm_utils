@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help install lint fmt typecheck test cov live test-min check-dropin check
+.PHONY: help install lint fmt typecheck test cov live test-min check-dropin check docs docs-build
 
 # Oldest versions the drop-in modules claim to support (see module docstrings / README).
 MIN_PYTHON := 3.10
@@ -42,3 +42,10 @@ check-dropin: ## Import the module alone in an empty dir with only its required 
 		python -c "import azure_openai_utils as m; print('drop-in OK:', m.__name__, m.__version__)"
 
 check: lint test test-min check-dropin ## Everything CI runs (on one Python version)
+
+# mkdocs-material pins mkdocs<2, so its MkDocs 2.0 notice is only noise here.
+docs: ## Preview the docs site at http://127.0.0.1:8000 with live reload
+	NO_MKDOCS_2_WARNING=1 uv run --only-group docs mkdocs serve
+
+docs-build: ## Build the docs site into site/; fails on broken links and warnings (same as CI)
+	NO_MKDOCS_2_WARNING=1 uv run --only-group docs mkdocs build --strict
