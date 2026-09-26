@@ -1067,13 +1067,16 @@ async def _arun(call: _Call, client: AsyncOpenAI) -> StructuredResult:
 
 def _collect(futures: list[Future], return_exceptions: bool) -> list:
     results = []
-    for future in futures:
-        try:
-            results.append(future.result())
-        except Exception as exc:
-            if not return_exceptions:
-                for pending in futures:
-                    pending.cancel()
-                raise
-            results.append(exc)
+    try:
+        for future in futures:
+            try:
+                results.append(future.result())
+            except Exception as exc:
+                if not return_exceptions:
+                    raise
+                results.append(exc)
+    except BaseException:  # an error, or Ctrl+C: don't send the prompts that haven't started
+        for pending in futures:
+            pending.cancel()
+        raise
     return results

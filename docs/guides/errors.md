@@ -78,6 +78,9 @@ with `status="cancelled"`, and then the `CancelledError` or `KeyboardInterrupt` 
 from attempts that finished before the cancellation, such as a failed validation attempt, still count in
 the tracker and the log. A request cut off mid-flight has no usage to report, so it adds no tokens.
 
+Pressing Ctrl+C during `structured_many` stops it from sending the prompts that haven't started. The ones
+already running finish and are recorded, then the `KeyboardInterrupt` is raised.
+
 ## Errors in batches
 
 In `structured_many` and `astructured_many`, the first error is raised and the rest of the batch is cancelled.

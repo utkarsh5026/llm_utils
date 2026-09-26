@@ -446,6 +446,19 @@ def test_structured_many_return_exceptions():
         az.structured_many(["ok", "bad"], Invoice, client=FakeClient(responder=responder))
 
 
+def test_structured_many_interrupt_stops_queued_prompts():
+    def responder(kwargs):
+        if kwargs["messages"][-1]["content"] == "interrupt":
+            raise KeyboardInterrupt  # re-raised in the main thread, as Ctrl+C would be
+        threading.Event().wait(0.1)  # slow enough that the queue is cancelled before it drains
+        return completion(INVOICE)
+
+    client = FakeClient(responder=responder)
+    with pytest.raises(KeyboardInterrupt):
+        az.structured_many(["interrupt"] + ["q"] * 10, Invoice, concurrency=1, return_exceptions=True, client=client)
+    assert len(client.requests) <= 2  # at most the prompt the worker had already picked up
+
+
 # --- async ---------------------------------------------------------------------
 
 
