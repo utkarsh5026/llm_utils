@@ -79,7 +79,9 @@ they always agree. Log-write and hook failures are caught and logged; they must 
 **Failure paths.** `_Call.stop()` records the call and returns a `StructuredOutputError` subclass carrying
 `.record` (status `refusal` / `content_filter` / `truncated` / `invalid`). `_Call.fail()` handles exceptions
 raised by the SDK. It maps Azure's 400 `code == "content_filter"` to `ContentFilterError` and records every
-other exception as status `error`, re-raising the original unchanged.
+other exception as status `error`, re-raising the original unchanged. `_run`/`_arun` catch `BaseException`, so a
+`CancelledError` or `KeyboardInterrupt` is recorded as status `cancelled`; `_Call.record` (set in `finish()`) stops
+`fail()` from recording a call twice. `astructured_many` awaits the tasks it cancels so they record before it raises.
 
 **Scoped tracking uses `contextvars`.** `track()` pushes a `UsageTracker` onto the `_scopes` ContextVar.
 asyncio tasks inherit it automatically. Threads don't, which is why `structured_many` submits work via

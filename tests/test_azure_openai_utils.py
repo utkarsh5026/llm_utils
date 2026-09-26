@@ -271,6 +271,27 @@ def test_api_errors_propagate_unchanged_but_are_recorded():
     assert rec.errors[0].startswith("APIConnectionError")
 
 
+def test_interrupted_call_is_recorded_as_cancelled():
+    def interrupt(kwargs):
+        raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        az.structured("q", Invoice, client=FakeClient(responder=interrupt))
+    rec = az.tracker.last
+    assert rec.status == "cancelled" and rec.errors == ["KeyboardInterrupt"]
+    assert az.tracker.calls == 1 and az.tracker.errors == 1
+
+
+def test_interrupt_inside_a_hook_does_not_record_the_call_twice():
+    @az.add_hook
+    def interrupt(rec):
+        raise KeyboardInterrupt
+
+    with pytest.raises(KeyboardInterrupt):
+        az.structured("q", Invoice, client=FakeClient(completion(None, refusal="no")))
+    assert az.tracker.calls == 1 and az.tracker.last.status == "refusal"
+
+
 def test_json_mode_puts_schema_in_prompt():
     client = FakeClient(completion(INVOICE))
     res = az.structured("invoice", Invoice, mode="json", client=client)
@@ -425,6 +446,19 @@ def test_structured_many_return_exceptions():
         az.structured_many(["ok", "bad"], Invoice, client=FakeClient(responder=responder))
 
 
+def test_structured_many_interrupt_stops_queued_prompts():
+    def responder(kwargs):
+        if kwargs["messages"][-1]["content"] == "interrupt":
+            raise KeyboardInterrupt  # re-raised in the main thread, as Ctrl+C would be
+        threading.Event().wait(0.1)  # slow enough that the queue is cancelled before it drains
+        return completion(INVOICE)
+
+    client = FakeClient(responder=responder)
+    with pytest.raises(KeyboardInterrupt):
+        az.structured_many(["interrupt"] + ["q"] * 10, Invoice, concurrency=1, return_exceptions=True, client=client)
+    assert len(client.requests) <= 2  # at most the prompt the worker had already picked up
+
+
 # --- async ---------------------------------------------------------------------
 
 
@@ -448,6 +482,39 @@ async def test_astructured_many_tracked_across_tasks():
         )
     assert [r.parsed.vendor for r in results] == [f"v{i}" for i in range(12)]
     assert batch.calls == 12
+
+
+async def test_cancelled_call_is_recorded_with_usage_of_earlier_attempts():
+    client = AsyncFakeClient(completion({**INVOICE, "total": -1}))
+    answer = client.chat.completions.create
+
+    async def create(**kwargs):
+        if client.requests:  # the first attempt failed validation; hang on the retry
+            await asyncio.Event().wait()
+        return await answer(**kwargs)
+
+    client.chat.completions.create = create
+    with pytest.raises(asyncio.TimeoutError):
+        await asyncio.wait_for(az.astructured("q", Invoice, client=client), 0.05)
+
+    rec = az.tracker.last
+    assert rec.status == "cancelled" and rec.attempts == 2
+    assert rec.usage.input_tokens == 100  # the failed first attempt is still counted
+    assert rec.errors[-1] == "CancelledError"
+
+
+async def test_astructured_many_records_cancelled_calls_before_raising():
+    error = api_error(openai.APIConnectionError)
+
+    async def create(**kwargs):
+        if kwargs["messages"][-1]["content"] == "slow":
+            await asyncio.Event().wait()
+        raise error
+
+    client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    with az.track("batch") as batch, pytest.raises(openai.APIConnectionError):
+        await az.astructured_many(["slow", "bad"], Invoice, client=client)
+    assert sorted(rec.status for rec in batch.records) == ["cancelled", "error"]
 
 
 async def test_aextract():
