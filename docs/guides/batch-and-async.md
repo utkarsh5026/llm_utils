@@ -91,7 +91,8 @@ asyncio.run(main())
 ```
 
 `astructured_many` keeps at most `concurrency` requests in flight. If one fails and `return_exceptions` is
-`False`, the others are cancelled and the error is raised.
+`False`, the others are cancelled and the error is raised. The cancelled calls are recorded with
+`status="cancelled"` first, so a `track()` block around the batch still counts their tokens.
 
 ### In a web app
 

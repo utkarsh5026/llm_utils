@@ -97,7 +97,8 @@ await astructured_many(
 ```
 
 Async version of `structured_many()`. At most `concurrency` requests are in flight at once. If one fails and
-`return_exceptions` is `False`, the others are cancelled.
+`return_exceptions` is `False`, the others are cancelled, and they're recorded as `cancelled` before the error
+is raised.
 
 ### `StructuredResult`
 
@@ -262,7 +263,7 @@ One logical call, with its validation retries folded in.
 | `messages` | `list[dict]` | The conversation as first sent. |
 | `output` | `Any` | Parsed answer as JSON data (only when `status == "ok"`). |
 | `raw_output` | `str | None` | The model's last raw text, when it couldn't be used. |
-| `status` | `str` | `ok`, `refusal`, `content_filter`, `truncated`, `invalid`, `error`. |
+| `status` | `str` | `ok`, `refusal`, `content_filter`, `truncated`, `invalid`, `error`, `cancelled`. |
 | `errors` | `list[str]` | Every problem encountered, in order. |
 | `attempts` | `int` | Requests made. |
 | `usage` | `Usage` | Summed across attempts. |

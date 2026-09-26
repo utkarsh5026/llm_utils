@@ -135,7 +135,7 @@ For a complete SQLite example, see [Save every call to SQLite](../recipes.md#sav
 | `messages` | The conversation as first sent, including system prompts. Your question is here. |
 | `output` | The parsed answer as JSON data. Only set when `status == "ok"`. |
 | `raw_output` | The model's last raw text when it couldn't be used. |
-| `status` | `ok`, `refusal`, `content_filter`, `truncated`, `invalid` or `error`. |
+| `status` | `ok`, `refusal`, `content_filter`, `truncated`, `invalid`, `error` or `cancelled`. |
 | `errors` | Every problem encountered, in order. |
 | `attempts` | Number of requests made (more than 1 if validation retries happened). |
 | `usage` | A `Usage`, summed across attempts. |

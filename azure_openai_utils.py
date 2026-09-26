@@ -348,7 +348,7 @@ class CallRecord:
     messages: list[dict[str, Any]]  # the conversation as first sent: the user's question lives here
     output: Any  # parsed output as JSON data (ok calls only)
     raw_output: str | None  # the model's last raw text, kept when it could not be parsed
-    status: str  # ok | refusal | content_filter | truncated | invalid | error
+    status: str  # ok | refusal | content_filter | truncated | invalid | error | cancelled
     errors: list[str]
     attempts: int
     usage: Usage
@@ -656,8 +656,8 @@ def structured(
     optional fields as `x: str | None`.
 
     Raises RefusalError, ContentFilterError, TruncatedError or ValidationFailedError (all carry
-    `.record`); network and API errors from the SDK propagate unchanged. Every call, failed or not,
-    is tracked and logged.
+    `.record`); network and API errors from the SDK propagate unchanged. Every call, even a failed
+    or cancelled one, is tracked and logged.
     """
     call = _Call(
         "structured",
@@ -754,6 +754,8 @@ async def astructured_many(
     except BaseException:
         for task in tasks:
             task.cancel()
+        # Wait for the cancelled calls to record themselves, so they're tracked before the error surfaces.
+        await asyncio.gather(*tasks, return_exceptions=True)
         raise
 
 
@@ -921,6 +923,7 @@ class _Call:
         self.content: str | None = None
         self.obj: BaseModel | None = None
         self.raw: Any = None
+        self.record: CallRecord | None = None  # set once finish() has emitted the call
 
     def request(self) -> dict[str, Any]:
         self.attempts += 1
@@ -976,9 +979,9 @@ class _Call:
             self.errors.append(message)
         return exc_type(message, self.finish(status))
 
-    def fail(self, exc: Exception) -> Exception:
+    def fail(self, exc: BaseException) -> BaseException:
         """Record a call that raised, and return the exception to surface."""
-        if isinstance(exc, StructuredOutputError):  # raised by stop(), already recorded
+        if self.record is not None:  # already recorded: raised by stop(), or interrupted while emitting
             return exc
         if getattr(exc, "code", None) == "content_filter":  # Azure rejects a filtered prompt with a 400
             return self.stop(
@@ -986,8 +989,9 @@ class _Call:
                 ContentFilterError,
                 f"Azure content filter blocked the prompt: {exc}",
             )
-        self.errors.append(f"{type(exc).__name__}: {exc}")
-        self.finish("error")
+        self.errors.append(f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__)
+        # CancelledError, KeyboardInterrupt, ...: the call was interrupted rather than failed
+        self.finish("error" if isinstance(exc, Exception) else "cancelled")
         return exc
 
     def finish(self, status: str) -> CallRecord:
@@ -1018,6 +1022,7 @@ class _Call:
             latency_s=round(time.perf_counter() - self.t0, 3),
             metadata=self.metadata,
         )
+        self.record = rec
         _emit(rec)
         return rec
 
@@ -1040,7 +1045,7 @@ def _run(call: _Call, client: OpenAI) -> StructuredResult:
     try:
         while not call.handle(client.chat.completions.create(**call.request())):
             pass
-    except Exception as exc:
+    except BaseException as exc:  # BaseException too, so cancelled and interrupted calls are recorded
         err = call.fail(exc)
         if err is exc:
             raise
@@ -1052,7 +1057,7 @@ async def _arun(call: _Call, client: AsyncOpenAI) -> StructuredResult:
     try:
         while not call.handle(await client.chat.completions.create(**call.request())):
             pass
-    except Exception as exc:
+    except BaseException as exc:  # BaseException too, so cancelled and interrupted calls are recorded
         err = call.fail(exc)
         if err is exc:
             raise

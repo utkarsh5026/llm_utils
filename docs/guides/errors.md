@@ -71,9 +71,18 @@ The one exception to "unchanged" is Azure's content filter. Azure rejects a filt
 whose code is `content_filter`, and that's converted to `ContentFilterError`, so both kinds of filtering can
 be caught the same way. The original SDK error is kept as `__cause__`.
 
+## Cancelled calls
+
+A call that is cancelled (an `asyncio.wait_for` timeout, a cancelled task) or interrupted (Ctrl+C) is recorded
+with `status="cancelled"`, and then the `CancelledError` or `KeyboardInterrupt` carries on unchanged. Tokens
+from attempts that finished before the cancellation, such as a failed validation attempt, still count in
+the tracker and the log. A request cut off mid-flight has no usage to report, so it adds no tokens.
+
 ## Errors in batches
 
 In `structured_many` and `astructured_many`, the first error is raised and the rest of the batch is cancelled.
+`astructured_many` records the calls it cancels before it raises. In `structured_many`, calls that are
+already running finish (a thread can't be interrupted), and calls that haven't started are never sent.
 To collect failures instead, use `return_exceptions=True`:
 
 ```python
