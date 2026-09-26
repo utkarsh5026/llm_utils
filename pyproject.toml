@@ -1,0 +1,72 @@
+[project]
+name = "llm-utils"
+version = "0.1.0"
+description = "Drop-in, single-file LLM provider utilities with structured output, token tracking and call logging."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "openai>=1.106",
+    "pydantic>=2.8",
+    "azure-identity>=1.15",
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=6.0",
+    "ruff>=0.16",
+    "pyright[nodejs]>=1.1.414",
+    "pre-commit>=4.0",
+]
+
+[tool.uv]
+package = false
+
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = ["live: hits a real Azure OpenAI deployment (needs AZURE_OPENAI_* env vars)"]
+addopts = ["--strict-markers"]
+
+[tool.coverage.run]
+source = ["azure_openai_utils"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+
+
+[tool.ruff]
+line-length = 120
+target-version = "py310" # the floor for drop-in modules; keeps pyupgrade from suggesting 3.11+ syntax
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "B",     # flake8-bugbear
+    "UP",    # pyupgrade
+    "SIM",   # flake8-simplify
+    "C4",    # flake8-comprehensions
+    "RUF",   # ruff-specific
+    "PT",    # flake8-pytest-style
+    "ASYNC", # flake8-async
+]
+ignore = [
+    "PT018", # compact `assert a and b` checks read fine in tests
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["azure_openai_utils"]
+
+[tool.pyright]
+include = ["*.py", "tests"]
+pythonVersion = "3.10" # flag any stdlib/typing use newer than the drop-in floor
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "standard"

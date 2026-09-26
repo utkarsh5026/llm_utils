@@ -1,0 +1,11 @@
+# Keeps the pinned action versions in .github/workflows current.
+# Python deps are refreshed with `uv lock --upgrade`, which leaves the declared floors in pyproject.toml alone.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
